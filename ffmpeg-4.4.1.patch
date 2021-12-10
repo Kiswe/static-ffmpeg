@@ -1,0 +1,45 @@
+diff -aur ffmpeg-4.4.1/libavformat/libsrt.c ffmpeg-4.4.1-patch/libavformat/libsrt.c
+--- ffmpeg-4.4.1/libavformat/libsrt.c	2021-10-24 16:47:07.000000000 -0400
++++ ffmpeg-4.4.1-patch/libavformat/libsrt.c	2021-12-10 14:45:27.525492564 -0500
+@@ -143,6 +143,9 @@
+     { NULL }
+ };
+ 
++static int numsrtstatswrite = 0;
++static int numsrtstatsread = 0;
++
+ static int libsrt_neterrno(URLContext *h)
+ {
+     int os_errno;
+@@ -658,6 +661,15 @@
+     SRTContext *s = h->priv_data;
+     int ret;
+ 
++    ++numsrtstatsread;
++    if (numsrtstatsread % 300 == 0) {
++        SRT_TRACEBSTATS perf;
++        srt_bstats(s->fd, &perf, 1);
++        printf("\nlibsrt_read sent %ld pkts %ld bytes retrans %d pkts drop %d pkts pktSentNAK %d pktRcvLossTotal %d msRTT %f mbpsRecvRate %f pktRcvBuf %d\n", 
++            perf.pktRecvTotal, perf.byteRecvTotal, perf.pktRetransTotal, perf.pktRcvDropTotal, perf.pktRecvNAK, perf.pktRcvLossTotal, perf.msRTT, perf.mbpsRecvRate,
++            perf.pktRcvBuf);
++    }
++
+     if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
+         ret = libsrt_network_wait_fd_timeout(h, s->eid, 0, h->rw_timeout, &h->interrupt_callback);
+         if (ret)
+@@ -677,6 +689,15 @@
+     SRTContext *s = h->priv_data;
+     int ret;
+ 
++    ++numsrtstatswrite;
++    if (numsrtstatswrite % 300 == 0) {
++        SRT_TRACEBSTATS perf;
++        srt_bstats(s->fd, &perf, 1);
++        printf("\nlibsrt_write sent %ld pkts %ld bytes retrans %d pkts drop %d pkts pktSentNAK %d pktSendLossTotal %d msRTT %f mbpsSendRate %f pktSndBuf %d\n", 
++            perf.pktSentTotal, perf.byteSentTotal, perf.pktRetransTotal, perf.pktSndDropTotal, perf.pktSentNAK, perf.pktSndLossTotal, perf.msRTT, perf.mbpsSendRate,
++            perf.pktSndBuf);
++    }
++
+     if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
+         ret = libsrt_network_wait_fd_timeout(h, s->eid, 1, h->rw_timeout, &h->interrupt_callback);
+         if (ret)

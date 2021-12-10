@@ -564,11 +564,13 @@ RUN \
   make -j$(nproc) install
 
 # sed changes --toolchain=hardened -pie to -static-pie
+COPY ffmpeg-4.4.1.patch /tmp/ffmpeg-4.4.1.patch
 RUN \
   wget -O ffmpeg.tar.bz2 "$FFMPEG_URL" && \
   echo "$FFMPEG_SHA256  ffmpeg.tar.bz2" | sha256sum --status -c - && \
   tar xf ffmpeg.tar.bz2 && \
   cd ffmpeg-* && \
+  patch -p1 < /tmp/ffmpeg-4.4.1.patch && \
   sed -i 's/add_ldexeflags -fPIE -pie/add_ldexeflags -fPIE -static-pie/' configure && \
   ./configure \
   --pkg-config-flags="--static" \
